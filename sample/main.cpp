@@ -45,13 +45,13 @@ int main()
 {
 	auto testBlah = FakeBlah<float>();
 
-	/*testBlah.Setup_OtherStuff()
-		.Expect([](int num){ return num < 42; });*/
+	MOCK_SETUP(testBlah, OtherStuff)
+		.Expect([](int num){ return num < 42; })
+		.Times([](int invocationCount){ return invocationCount > 2; });
 
-	testBlah.Setup_OtherStuff(__FILE__, __LINE__)
-		.Expect([](int num){ return num < 42; });
-
-	testBlah.OtherStuff(43);
+	testBlah.OtherStuff(41);
+	testBlah.OtherStuff(40);
+	testBlah.OtherStuff(40);
 
 	cout << "Press Enter to exit";
 

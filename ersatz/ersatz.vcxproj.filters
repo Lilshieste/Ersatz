@@ -51,10 +51,13 @@
     <ClInclude Include="ersatz_mocked_function_n.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ersatz_matcher.h">
+    <ClInclude Include="ersatz_mocked_function_metadata.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ersatz_mocked_function_metadata.h">
+    <ClInclude Include="ersatz_expectation_formatter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ExpectationInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

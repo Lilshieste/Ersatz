@@ -66,7 +66,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ersatz.h" />
-    <ClInclude Include="ersatz_matcher.h" />
+    <ClInclude Include="ersatz_expectation_formatter.h" />
     <ClInclude Include="ersatz_mocked_function.h" />
     <ClInclude Include=".\ersatz_mocked_function_0.h" />
     <ClInclude Include=".\ersatz_mocked_function_1.h" />
@@ -79,6 +79,7 @@
     <ClInclude Include=".\ersatz_mocked_function_variadic.h" />
     <ClInclude Include="ersatz_mocked_function_metadata.h" />
     <ClInclude Include="ersatz_mocked_function_n.h" />
+    <ClInclude Include="ExpectationInfo.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

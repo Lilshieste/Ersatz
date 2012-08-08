@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <functional>
+#include <ostream>
 
 #include "ersatz_mocked_function_main.h"
 #include "ersatz_mocked_function_info.h"
@@ -24,7 +25,7 @@ namespace ersatz																												\
 																																\
 		MockedFunction()																										\
 		{																														\
-			WillReturnDefault([](PARAMETER_LIST){ return RETURN_TYPE(); });														\
+			WillDoByDefault([](PARAMETER_LIST){ return RETURN_TYPE(); });														\
 		}																														\
 																																\
 		~MockedFunction()																										\
@@ -33,14 +34,14 @@ namespace ersatz																												\
 																																\
 		struct ExpectationMatchResult																							\
 		{																														\
-			ExpectationMatchResult(bool wasSuccessful, FunctionType returnExpression)											\
+			ExpectationMatchResult(bool wasSuccessful, FunctionType action)											\
 			{																													\
 				WasSuccessful = wasSuccessful;																					\
-				ReturnExpression = returnExpression;																			\
+				Action = action;																			\
 			}																													\
 																																\
 			bool WasSuccessful;																									\
-			FunctionType ReturnExpression;																						\
+			FunctionType Action;																						\
 		};																														\
 																																\
 		class Expectation																										\
@@ -49,46 +50,36 @@ namespace ersatz																												\
 			Expectation(MockedFunction<RETURN_TYPE(PARAMETER_TYPES)>& mockedFunction)											\
 				: m_mockedFunction(mockedFunction)																				\
 			{																													\
-				m_invocationCount = 0;																							\
-				m_matchCount = 0;																								\
-				m_expectedCount = 1;																							\
-				m_matcher = [](PARAMETER_TYPES){ return true; };																\
-				m_returnExpression = m_mockedFunction.m_defaultReturnExpression;												\
+				Initialize(m_mockedFunction, [](PARAMETER_TYPES){ return true; });												\
 			}																													\
 																																\
 			Expectation(MockedFunction<RETURN_TYPE(PARAMETER_TYPES)>& mockedFunction, std::function<bool(PARAMETER_TYPES)> matcher)	\
 				: m_mockedFunction(mockedFunction)																				\
 			{																													\
-				m_invocationCount = 0;																							\
-				m_matchCount = 0;																								\
-				m_expectedCount = 1;																							\
-				m_matcher = matcher;																							\
-				m_returnExpression = m_mockedFunction.m_defaultReturnExpression;												\
+				Initialize(m_mockedFunction, matcher);																			\
 			}																													\
 																																\
 			~Expectation()																										\
 			{																													\
-				if(m_expectedCount > 0)																							\
+				if(!m_matchingInvocationCountVerifier(m_matchingInvocationCount))																		\
 				{																												\
-					if(m_matchCount < m_expectedCount)																			\
-					{																											\
-						std::cout << std::endl << m_mockedFunction.m_functionMetadata.FunctionName << " not invoked expected number of times\n";	\
-					}																											\
-					else if(m_matchCount > m_expectedCount)																		\
-					{																											\
-						std::cout << std::endl << m_mockedFunction.m_functionMetadata.FunctionName << " invoked more times than expected\n";		\
-					}																											\
+					std::cout << std::endl << m_mockedFunction.m_functionMetadata.FunctionName << " not invoked expedted number of times." << std::endl;\
 				}																												\
 			}																													\
 																																\
 			void Times(unsigned int count)																						\
 			{																													\
-				m_expectedCount = count;																						\
+				Times([count](unsigned int matchingInvocationCount){ return matchingInvocationCount == count; });				\
 			}																													\
 																																\
-			Expectation& WillReturn(FunctionType returnExpression)																\
+			void Times(std::function<bool(unsigned int)> matchingInvocationCountVerifier)										\
 			{																													\
-				m_returnExpression = returnExpression;																			\
+				m_matchingInvocationCountVerifier = matchingInvocationCountVerifier;											\
+			}																													\
+																																\
+			Expectation& WillDo(FunctionType action)																			\
+			{																													\
+				m_action = action;																								\
 																																\
 				return *this;																									\
 			}																													\
@@ -96,28 +87,38 @@ namespace ersatz																												\
 			ExpectationMatchResult Match(PARAMETER_LIST)																		\
 			{																													\
 				auto wasSuccessful = false;																						\
-				FunctionType result = m_mockedFunction.m_defaultReturnExpression;												\
+				FunctionType action = m_mockedFunction.m_defaultAction;												\
 																																\
 				if(m_matcher(PARAMETER_NAMES))																					\
 				{																												\
 					wasSuccessful = true;																						\
-					m_matchCount++;																								\
-					result = m_returnExpression;																				\
+					m_matchingInvocationCount++;																				\
+					action = m_action;																							\
 				}																												\
 																																\
 				m_invocationCount++;																							\
 																																\
-				return ExpectationMatchResult(wasSuccessful, result);															\
+				return ExpectationMatchResult(wasSuccessful, action);															\
 			}																													\
 																																\
 		private:																												\
 			MockedFunction<RETURN_TYPE(PARAMETER_TYPES)>& m_mockedFunction;														\
 			std::function<bool(PARAMETER_TYPES)> m_matcher;																		\
+			std::function<bool(unsigned int)> m_matchingInvocationCountVerifier;												\
 			unsigned int m_invocationCount;																						\
-			unsigned int m_matchCount;																							\
-			unsigned int m_expectedCount;																						\
+			unsigned int m_matchingInvocationCount;																				\
 																																\
-			FunctionType m_returnExpression;																					\
+			FunctionType m_action;																								\
+																																\
+			void Initialize(MockedFunction<RETURN_TYPE(PARAMETER_TYPES)>& mockedFunction, std::function<bool(PARAMETER_TYPES)> matcher)	\
+			{																													\
+				m_invocationCount = 0;																							\
+				m_matchingInvocationCount = 0;																					\
+				m_matcher = matcher;																							\
+				m_action = m_mockedFunction.m_defaultAction;																	\
+				Times(1);																										\
+			}																													\
+																																\
 		};																														\
 																																\
 		std::string GetFunctionName()																							\
@@ -140,9 +141,9 @@ namespace ersatz																												\
 			m_functionMetadata = metadata;																						\
 		}																														\
 																																\
-		MockedFunction<RETURN_TYPE(PARAMETER_TYPES)>& WillReturnDefault(FunctionType defaultReturnExpression)					\
+		MockedFunction<RETURN_TYPE(PARAMETER_TYPES)>& WillDoByDefault(FunctionType defaultAction)					\
 		{																														\
-			m_defaultReturnExpression = defaultReturnExpression;																\
+			m_defaultAction = defaultAction;																\
 																																\
 			return *this;																										\
 		}																														\
@@ -169,17 +170,17 @@ namespace ersatz																												\
 																																\
 				if(matchResult.WasSuccessful)																					\
 				{																												\
-					return matchResult.ReturnExpression(PARAMETER_NAMES);														\
+					return matchResult.Action(PARAMETER_NAMES);														\
 				}																												\
 			}																													\
 																																\
-			return m_defaultReturnExpression(PARAMETER_NAMES);																	\
+			return m_defaultAction(PARAMETER_NAMES);																	\
 		}																														\
 																																\
 	private:																													\
 		std::string m_functionName;																								\
 		MockedFunctionMetadata m_functionMetadata;																				\
-		FunctionType m_defaultReturnExpression;																					\
+		FunctionType m_defaultAction;																					\
 		std::unique_ptr<Expectation> m_expectation;																				\
 	};																															\
 }

@@ -1,3 +1,5 @@
+// TODO: Actually develop this using gcc, or something else other than VS, to verify functionality
+
 #ifndef _ERSATZ_MOCKED_FUNCTION_VARIADIC_H
 #define _ERSATZ_MOCKED_FUNCTION_VARIADIC_H
 
